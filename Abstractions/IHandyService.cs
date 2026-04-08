@@ -1,0 +1,43 @@
+using handyapiv3.Models;
+
+namespace handyapiv3.Abstractions;
+
+public interface IHandyService
+{
+    event EventHandler? StateChanged;
+
+    string? ConnectionKey { get; }
+    bool Connected { get; }
+    HandyMode CurrentMode { get; }
+    InfoResponse? Info { get; }
+    HampStateResponse? HampState { get; }
+    HsspStateResponse? HsspState { get; }
+    SliderStrokeResponse? SliderStroke { get; }
+    long EstimatedServerTimeOffset { get; }
+    HandyApiError? LastError { get; }
+
+    void SetConnectionKey(string connectionKey);
+    void ClearConnectionKey();
+
+    Task<bool> GetConnectedAsync(CancellationToken cancellationToken = default);
+    Task<InfoResponse> GetInfoAsync(CancellationToken cancellationToken = default);
+    Task<HandyMode> GetModeAsync(CancellationToken cancellationToken = default);
+    Task<ModeResponse> SetModeAsync(HandyMode mode, CancellationToken cancellationToken = default);
+    Task<HampStateResponse> StartHampAsync(CancellationToken cancellationToken = default);
+    Task<HampStateResponse> StopHampAsync(CancellationToken cancellationToken = default);
+    Task<HampStateResponse> GetHampStateAsync(CancellationToken cancellationToken = default);
+    Task<HampStateResponse> SetHampVelocityAsync(double velocity, CancellationToken cancellationToken = default);
+    Task<SliderStrokeResponse> GetSliderStrokeAsync(CancellationToken cancellationToken = default);
+    Task<SliderStrokeResponse> SetSliderStrokeAsync(double min, double max, CancellationToken cancellationToken = default);
+    Task<HsspStateResponse> GetHsspStateAsync(CancellationToken cancellationToken = default);
+    Task<HsspStateResponse> SetupHsspAsync(string scriptUrl, CancellationToken cancellationToken = default);
+    Task<HsspStateResponse> SetupHsspFromUrlAsync(string scriptUrl, CancellationToken cancellationToken = default);
+    Task<HsspStateResponse> SetupHsspFromCsvAsync(string csvContent, CancellationToken cancellationToken = default);
+    Task<HsspStateResponse> SetupHsspFromActionsJsonAsync(string actionsJson, CancellationToken cancellationToken = default);
+    Task<HsspStateResponse> PlayHsspAsync(long startTime, double playbackRate = 1.0, bool loop = false, long? serverTime = null, CancellationToken cancellationToken = default);
+    Task<HsspStateResponse> StopHsspAsync(CancellationToken cancellationToken = default);
+    Task<HsspStateResponse> SyncHsspTimeAsync(int currentTime, double filter = 1.0, long? serverTime = null, CancellationToken cancellationToken = default);
+    Task<int> GetHstpOffsetAsync(CancellationToken cancellationToken = default);
+    Task SetHstpOffsetAsync(int offset, CancellationToken cancellationToken = default);
+    Task<long> EstimateServerTimeOffsetAsync(int trips = 10, CancellationToken cancellationToken = default);
+}
