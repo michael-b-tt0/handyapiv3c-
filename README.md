@@ -19,10 +19,11 @@ Current support includes:
 - device info
 - mode get/set
 - HAMP start, stop, state, velocity
-- HSSP setup, play, stop, state, sync time
+- HSSP setup, play, pause, resume, stop, state, sync time
 - HSTP offset get/set
 - slider stroke get/set
 - server-time offset estimation
+- Hosting API v2 script upload
 
 ## Project Structure
 
@@ -76,6 +77,7 @@ builder.Services.AddHandyApiV3(options =>
     options.ConnectionKey = null;
     // options.ApplicationApiKey = "your-app-id";
     // options.ApiBaseUrl = "https://www.handyfeeling.com/api/handy-rest/v3/";
+    // options.HostingApiBaseUrl = "https://www.handyfeeling.com/api/hosting/v2/";
 });
 ```
 
@@ -166,17 +168,21 @@ To perform a sync adjustment while playback is running:
 await Handy.SyncHsspTimeAsync(currentTime: 15000, filter: 1.0);
 ```
 
-If you already have script content locally, v3 can push the content directly during setup:
-
-```csharp
-await Handy.SetupHsspFromCsvAsync(csvContent);
-```
-
-```csharp
-await Handy.SetupHsspFromActionsJsonAsync(actionsJson);
-```
-
 `SetupHsspAsync(string scriptUrl)` is still available as a convenience alias for URL-based setup.
+
+If direct content setup is unreliable for your workflow, upload the local script through Hosting API v2 first and then pass the returned URL into HSSP setup:
+
+```csharp
+var upload = await Handy.UploadScriptTextAsync("script.funscript", funscriptJson, "application/json");
+await Handy.SetupHsspFromUrlAsync(upload.Url);
+```
+
+Pause and resume are available as separate protocol operations:
+
+```csharp
+await Handy.PauseHsspAsync();
+await Handy.ResumeHsspAsync(pickUp: false);
+```
 
 ## Example: Slider Stroke
 
@@ -246,7 +252,6 @@ The `implementation material` folder in this project is kept as a local referenc
 
 ## Current Limitations
 
-- no script upload helper is included yet
 - no HDSP support is implemented yet
 - no persistence for `ConnectionKey` is built in
 - no built-in throttling/queueing layer is included

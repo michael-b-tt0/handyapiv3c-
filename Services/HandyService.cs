@@ -1,5 +1,6 @@
 using handyapiv3.Abstractions;
 using handyapiv3.Models;
+using System.Text;
 
 namespace handyapiv3.Services;
 
@@ -108,16 +109,15 @@ public sealed class HandyService : IHandyService
         });
     }
 
-    public async Task<HampStateResponse> GetHampStateAsync(CancellationToken cancellationToken = default)
-    {
-        var response = await _client.GetHampStateAsync(cancellationToken);
-        return Handle(response, result =>
-        {
-            HampState = result;
-            CurrentMode = HandyMode.Hamp;
-            return result;
-        });
-    }
+	public async Task<HampStateResponse> GetHampStateAsync(CancellationToken cancellationToken = default)
+	{
+		var response = await _client.GetHampStateAsync(cancellationToken);
+		return Handle(response, result =>
+		{
+			HampState = result;
+			return result;
+		});
+	}
 
     public async Task<HampStateResponse> SetHampVelocityAsync(double velocity, CancellationToken cancellationToken = default)
     {
@@ -165,16 +165,15 @@ public sealed class HandyService : IHandyService
         });
     }
 
-    public async Task<HsspStateResponse> GetHsspStateAsync(CancellationToken cancellationToken = default)
-    {
-        var response = await _client.GetHsspStateAsync(cancellationToken);
-        return Handle(response, result =>
-        {
-            HsspState = result;
-            CurrentMode = HandyMode.Hssp;
-            return result;
-        });
-    }
+	public async Task<HsspStateResponse> GetHsspStateAsync(CancellationToken cancellationToken = default)
+	{
+		var response = await _client.GetHsspStateAsync(cancellationToken);
+		return Handle(response, result =>
+		{
+			HsspState = result;
+			return result;
+		});
+	}
 
     public async Task<HsspStateResponse> SetupHsspAsync(string scriptUrl, CancellationToken cancellationToken = default)
         => await SetupHsspFromUrlAsync(scriptUrl, cancellationToken);
@@ -195,36 +194,29 @@ public sealed class HandyService : IHandyService
         });
     }
 
-    public async Task<HsspStateResponse> SetupHsspFromCsvAsync(string csvContent, CancellationToken cancellationToken = default)
+    public Task<ScriptUploadResponse> UploadScriptAsync(string fileName, byte[] content, string? contentType = null, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(csvContent))
+        if (string.IsNullOrWhiteSpace(fileName))
         {
-            throw new ArgumentException("CSV content is required.", nameof(csvContent));
+            throw new ArgumentException("A file name is required.", nameof(fileName));
         }
 
-        var response = await _client.SetupHsspAsync(new HsspSetupCsvRequest { Csv = csvContent }, cancellationToken);
-        return Handle(response, result =>
+        if (content.Length == 0)
         {
-            HsspState = result;
-            CurrentMode = HandyMode.Hssp;
-            return result;
-        });
+            throw new ArgumentException("Script content is required.", nameof(content));
+        }
+
+        return _client.UploadScriptAsync(fileName, content, contentType, cancellationToken);
     }
 
-    public async Task<HsspStateResponse> SetupHsspFromActionsJsonAsync(string actionsJson, CancellationToken cancellationToken = default)
+    public Task<ScriptUploadResponse> UploadScriptTextAsync(string fileName, string content, string? contentType = null, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(actionsJson))
+        if (string.IsNullOrWhiteSpace(content))
         {
-            throw new ArgumentException("Actions JSON is required.", nameof(actionsJson));
+            throw new ArgumentException("Script content is required.", nameof(content));
         }
 
-        var response = await _client.SetupHsspAsync(new HsspSetupActionsJsonRequest { Actions = actionsJson }, cancellationToken);
-        return Handle(response, result =>
-        {
-            HsspState = result;
-            CurrentMode = HandyMode.Hssp;
-            return result;
-        });
+        return UploadScriptAsync(fileName, Encoding.UTF8.GetBytes(content), contentType, cancellationToken);
     }
 
     public async Task<HsspStateResponse> PlayHsspAsync(long startTime, double playbackRate = 1.0, bool loop = false, long? serverTime = null, CancellationToken cancellationToken = default)
@@ -235,6 +227,32 @@ public sealed class HandyService : IHandyService
             ServerTime = serverTime ?? GetEstimatedServerTime(),
             PlaybackRate = playbackRate,
             Loop = loop,
+        }, cancellationToken);
+
+        return Handle(response, result =>
+        {
+            HsspState = result;
+            CurrentMode = HandyMode.Hssp;
+            return result;
+        });
+    }
+
+    public async Task<HsspStateResponse> PauseHsspAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _client.PauseHsspAsync(cancellationToken);
+        return Handle(response, result =>
+        {
+            HsspState = result;
+            CurrentMode = HandyMode.Hssp;
+            return result;
+        });
+    }
+
+    public async Task<HsspStateResponse> ResumeHsspAsync(bool pickUp = false, CancellationToken cancellationToken = default)
+    {
+        var response = await _client.ResumeHsspAsync(new HsspResumeRequest
+        {
+            PickUp = pickUp,
         }, cancellationToken);
 
         return Handle(response, result =>
@@ -285,7 +303,7 @@ public sealed class HandyService : IHandyService
         Handle(response, _ => true);
     }
 
-    public async Task<long> EstimateServerTimeOffsetAsync(int trips = 10, CancellationToken cancellationToken = default)
+    public async Task<long> EstimateServerTimeOffsetAsync(int trips = 30, CancellationToken cancellationToken = default)
     {
         trips = Math.Max(1, trips);
         await _client.GetServerTimeAsync(cancellationToken);

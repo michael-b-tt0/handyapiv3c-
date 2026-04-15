@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using System.Text.Json;
+
 
 namespace handyapiv3.Models;
 
@@ -10,18 +12,6 @@ public sealed class HsspSetupUrlRequest : HsspSetupRequest
 {
     [JsonPropertyName("url")]
     public string Url { get; set; } = string.Empty;
-}
-
-public sealed class HsspSetupCsvRequest : HsspSetupRequest
-{
-    [JsonPropertyName("csv")]
-    public string Csv { get; set; } = string.Empty;
-}
-
-public sealed class HsspSetupActionsJsonRequest : HsspSetupRequest
-{
-    [JsonPropertyName("actions")]
-    public string Actions { get; set; } = string.Empty;
 }
 
 public sealed class HsspPlayRequest
@@ -37,6 +27,12 @@ public sealed class HsspPlayRequest
 
     [JsonPropertyName("loop")]
     public bool Loop { get; set; }
+}
+
+public sealed class HsspResumeRequest
+{
+    [JsonPropertyName("pickUp")]
+    public bool PickUp { get; set; }
 }
 
 public sealed class HsspSyncTimeRequest

@@ -32,12 +32,15 @@ public interface IHandyService
     Task<HsspStateResponse> GetHsspStateAsync(CancellationToken cancellationToken = default);
     Task<HsspStateResponse> SetupHsspAsync(string scriptUrl, CancellationToken cancellationToken = default);
     Task<HsspStateResponse> SetupHsspFromUrlAsync(string scriptUrl, CancellationToken cancellationToken = default);
-    Task<HsspStateResponse> SetupHsspFromCsvAsync(string csvContent, CancellationToken cancellationToken = default);
-    Task<HsspStateResponse> SetupHsspFromActionsJsonAsync(string actionsJson, CancellationToken cancellationToken = default);
+    Task<ScriptUploadResponse> UploadScriptAsync(string fileName, byte[] content, string? contentType = null, CancellationToken cancellationToken = default);
+    Task<ScriptUploadResponse> UploadScriptTextAsync(string fileName, string content, string? contentType = null, CancellationToken cancellationToken = default);
+    
     Task<HsspStateResponse> PlayHsspAsync(long startTime, double playbackRate = 1.0, bool loop = false, long? serverTime = null, CancellationToken cancellationToken = default);
+    Task<HsspStateResponse> PauseHsspAsync(CancellationToken cancellationToken = default);
+    Task<HsspStateResponse> ResumeHsspAsync(bool pickUp = false, CancellationToken cancellationToken = default);
     Task<HsspStateResponse> StopHsspAsync(CancellationToken cancellationToken = default);
     Task<HsspStateResponse> SyncHsspTimeAsync(int currentTime, double filter = 1.0, long? serverTime = null, CancellationToken cancellationToken = default);
     Task<int> GetHstpOffsetAsync(CancellationToken cancellationToken = default);
     Task SetHstpOffsetAsync(int offset, CancellationToken cancellationToken = default);
-    Task<long> EstimateServerTimeOffsetAsync(int trips = 10, CancellationToken cancellationToken = default);
+    Task<long> EstimateServerTimeOffsetAsync(int trips = 30, CancellationToken cancellationToken = default);
 }
