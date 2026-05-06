@@ -15,6 +15,9 @@ public interface IHandyService
     SliderStrokeResponse? SliderStroke { get; }
     long EstimatedServerTimeOffset { get; }
     HandyApiError? LastError { get; }
+    int RateLimitPerMinute { get; }
+    int RateLimitRemaining { get; }
+    int SecondsUntilRateLimitReset { get; }
 
     void SetConnectionKey(string connectionKey);
     void ClearConnectionKey();

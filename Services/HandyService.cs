@@ -33,6 +33,12 @@ public sealed class HandyService : IHandyService
 
     public HandyApiError? LastError { get; private set; }
 
+    public int RateLimitPerMinute { get; private set; }
+
+    public int RateLimitRemaining { get; private set; }
+
+    public int SecondsUntilRateLimitReset { get; private set; }
+
     public void SetConnectionKey(string connectionKey)
     {
         _client.ConnectionKey = connectionKey;
@@ -44,6 +50,9 @@ public sealed class HandyService : IHandyService
         _client.ConnectionKey = null;
         Connected = false;
         LastError = null;
+        RateLimitPerMinute = 0;
+        RateLimitRemaining = 0;
+        SecondsUntilRateLimitReset = 0;
         OnStateChanged();
     }
 
@@ -416,6 +425,8 @@ public sealed class HandyService : IHandyService
 
     private TOut Handle<TResult, TOut>(HandyApiResponse<TResult> response, Func<TResult, TOut> onSuccess) where TResult : class
     {
+        UpdateRateLimitState(response);
+
         if (response.Error is not null)
         {
             LastError = response.Error;
@@ -434,6 +445,13 @@ public sealed class HandyService : IHandyService
         var result = onSuccess(response.Result ?? throw new InvalidOperationException("Handy API returned no result."));
         OnStateChanged();
         return result;
+    }
+
+    private void UpdateRateLimitState(HandyApiResponse response)
+    {
+        RateLimitPerMinute = response.RateLimitPerMinute;
+        RateLimitRemaining = response.RateLimitRemaining;
+        SecondsUntilRateLimitReset = response.SecondsUntilRateLimitReset;
     }
 
     private void OnStateChanged() => StateChanged?.Invoke(this, EventArgs.Empty);

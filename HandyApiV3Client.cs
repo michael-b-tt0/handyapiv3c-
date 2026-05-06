@@ -193,7 +193,7 @@ public sealed class HandyApiV3Client
 
             payload.RateLimitPerMinute = TryParseHeader(response.Headers, "X-RateLimit-Limit");
             payload.RateLimitRemaining = TryParseHeader(response.Headers, "X-RateLimit-Remaining");
-            payload.MsUntilRateLimitReset = TryParseHeader(response.Headers, "X-RateLimit-Reset");
+            payload.SecondsUntilRateLimitReset = TryParseHeader(response.Headers, "X-RateLimit-Reset");
 
             return payload;
             }

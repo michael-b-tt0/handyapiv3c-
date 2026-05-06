@@ -11,7 +11,7 @@ public class HandyApiResponse
 
     public int RateLimitRemaining { get; set; }
 
-    public int MsUntilRateLimitReset { get; set; }
+    public int SecondsUntilRateLimitReset { get; set; }
 }
 
 public sealed class HandyApiResponse<T> : HandyApiResponse
