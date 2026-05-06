@@ -103,6 +103,24 @@ public sealed class HandyApiV3Client
     public Task<HandyApiResponse<HampStateResponse>> PutHampVelocityAsync(double velocity, CancellationToken cancellationToken = default)
         => PutAsync<HampStateResponse>("hamp/velocity", new HampVelocityRequest { Velocity = velocity }, cancellationToken);
 
+    public Task<HandyApiResponse<string>> PutHdspXavaAsync(HdspXavaRequest request, CancellationToken cancellationToken = default)
+        => PutAsync<string>("hdsp/xava", request, cancellationToken);
+
+    public Task<HandyApiResponse<string>> PutHdspXavpAsync(HdspXavpRequest request, CancellationToken cancellationToken = default)
+        => PutAsync<string>("hdsp/xavp", request, cancellationToken);
+
+    public Task<HandyApiResponse<string>> PutHdspXpvaAsync(HdspXpvaRequest request, CancellationToken cancellationToken = default)
+        => PutAsync<string>("hdsp/xpva", request, cancellationToken);
+
+    public Task<HandyApiResponse<string>> PutHdspXpvpAsync(HdspXpvpRequest request, CancellationToken cancellationToken = default)
+        => PutAsync<string>("hdsp/xpvp", request, cancellationToken);
+
+    public Task<HandyApiResponse<string>> PutHdspXatAsync(HdspXatRequest request, CancellationToken cancellationToken = default)
+        => PutAsync<string>("hdsp/xat", request, cancellationToken);
+
+    public Task<HandyApiResponse<string>> PutHdspXptAsync(HdspXptRequest request, CancellationToken cancellationToken = default)
+        => PutAsync<string>("hdsp/xpt", request, cancellationToken);
+
     public Task<HandyApiResponse<SliderStateResponse>> GetSliderStateAsync(CancellationToken cancellationToken = default)
         => GetAsync<SliderStateResponse>("slider/state", cancellationToken);
 
@@ -141,31 +159,31 @@ public sealed class HandyApiV3Client
         using (var response = await _httpClient.SendAsync(request, cancellationToken))
             {
             // Log the complete request before sending
-            Console.WriteLine("========== FULL HTTP REQUEST ==========");
+           /* Console.WriteLine("========== FULL HTTP REQUEST ==========");
             Console.WriteLine($"Method: {request.Method}");
             Console.WriteLine($"URI: {request.RequestUri}");
             Console.WriteLine("Headers:");
             foreach (var header in request.Headers)
-            {
-                Console.WriteLine($"  {header.Key}: {string.Join(", ", header.Value)}");
-            }
-            if (request.Content != null)
-            {
-                Console.WriteLine("Content Headers:");
-                foreach (var header in request.Content.Headers)
                 {
+                Console.WriteLine($"  {header.Key}: {string.Join(", ", header.Value)}");
+                }*/
+            if (request.Content != null)
+                {
+                /*Console.WriteLine("Content Headers:");
+                foreach (var header in request.Content.Headers)
+                    {
                     Console.WriteLine($"  {header.Key}: {string.Join(", ", header.Value)}");
-                }
+                    }*/
                 var requestBody = await request.Content.ReadAsStringAsync(cancellationToken);
-                Console.WriteLine("Body:");
-                Console.WriteLine(requestBody);
-            }
-            Console.WriteLine("========== END REQUEST ==========");
+                /*Console.WriteLine("Body:");
+                Console.WriteLine(requestBody);*/
+                }
+           /* Console.WriteLine("========== END REQUEST ==========");*/
 
             // Log the raw response before EnsureSuccessStatusCode throws
             var rawBody = await response.Content.ReadAsStringAsync(cancellationToken);
-            Console.WriteLine($"[HandyApiV3Client] {request.Method} {request.RequestUri} -> {(int)response.StatusCode}");
-            Console.WriteLine($"[HandyApiV3Client] Response body: {rawBody}");
+            /*Console.WriteLine($"[HandyApiV3Client] {request.Method} {request.RequestUri} -> {(int)response.StatusCode}");
+            Console.WriteLine($"[HandyApiV3Client] Response body: {rawBody}");*/
 
             response.EnsureSuccessStatusCode();
 

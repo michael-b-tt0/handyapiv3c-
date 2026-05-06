@@ -27,6 +27,12 @@ public interface IHandyService
     Task<HampStateResponse> StopHampAsync(CancellationToken cancellationToken = default);
     Task<HampStateResponse> GetHampStateAsync(CancellationToken cancellationToken = default);
     Task<HampStateResponse> SetHampVelocityAsync(double velocity, CancellationToken cancellationToken = default);
+    Task<string> SendHdspXavaAsync(double absolutePosition, double absoluteVelocity, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default);
+    Task<string> SendHdspXavpAsync(double absolutePosition, double percentVelocity, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default);
+    Task<string> SendHdspXpvaAsync(double normalizedPosition, double absoluteVelocity, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default);
+    Task<string> SendHdspXpvpAsync(double normalizedPosition, double percentVelocity, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default);
+    Task<string> SendHdspXatAsync(double absolutePosition, double duration, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default);
+    Task<string> SendHdspXptAsync(double normalizedPosition, double duration, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default);
     Task<SliderStrokeResponse> GetSliderStrokeAsync(CancellationToken cancellationToken = default);
     Task<SliderStrokeResponse> SetSliderStrokeAsync(double min, double max, CancellationToken cancellationToken = default);
     Task<HsspStateResponse> GetHsspStateAsync(CancellationToken cancellationToken = default);

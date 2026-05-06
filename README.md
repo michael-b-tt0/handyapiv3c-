@@ -19,6 +19,7 @@ Current support includes:
 - device info
 - mode get/set
 - HAMP start, stop, state, velocity
+- HDSP direct command streaming (`xava`, `xavp`, `xpva`, `xpvp`, `xat`, `xpt`)
 - HSSP setup, play, pause, resume, stop, state, sync time
 - HSTP offset get/set
 - slider stroke get/set
@@ -184,6 +185,26 @@ await Handy.PauseHsspAsync();
 await Handy.ResumeHsspAsync(pickUp: false);
 ```
 
+## Example: HDSP
+
+```csharp
+await Handy.SendHdspXpvpAsync(
+    normalizedPosition: 0.25,
+    percentVelocity: 60,
+    stopOnTarget: true);
+
+await Handy.SendHdspXatAsync(
+    absolutePosition: 110,
+    duration: 250);
+```
+
+Notes:
+
+- HDSP exposes the v3 command endpoints directly through the service and client.
+- `xp*` HDSP position inputs are normalized and clamped to `0..1` by `HandyService`, where `0` is 0% and `1` is 100%.
+- Absolute position, absolute velocity, and duration values are clamped to `>= 0` by `HandyService`.
+- The Handy REST API v3 spec currently exposes HDSP command endpoints, but not a dedicated `GET /hdsp/state` endpoint, so this library does not currently provide HDSP state polling.
+
 ## Example: Slider Stroke
 
 ```csharp
@@ -240,7 +261,8 @@ This library is intentionally designed around Handy API v3 behavior.
 In particular:
 
 - HAMP and HSSP operations call their protocol endpoints directly
-- explicit `SetModeAsync(...)` remains available, but is not required for normal HAMP/HSSP usage
+- HDSP operations call the HDSP command endpoints directly
+- explicit `SetModeAsync(...)` remains available, but is not required for normal HAMP/HSSP/HDSP usage
 - `CurrentMode` is updated from successful operations so the UI can still reflect mode changes
 
 ## Notes About the Reference Material
@@ -252,7 +274,7 @@ The `implementation material` folder in this project is kept as a local referenc
 
 ## Current Limitations
 
-- no HDSP support is implemented yet
+- HDSP command support is implemented, but HDSP state polling is not because the current v3 REST spec does not expose a dedicated HDSP state endpoint
 - no persistence for `ConnectionKey` is built in
 - no built-in throttling/queueing layer is included
 

@@ -132,6 +132,84 @@ public sealed class HandyService : IHandyService
         });
     }
 
+    public async Task<string> SendHdspXavaAsync(double absolutePosition, double absoluteVelocity, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default)
+    {
+        var response = await _client.PutHdspXavaAsync(new HdspXavaRequest
+        {
+            AbsolutePosition = Math.Max(0, absolutePosition),
+            AbsoluteVelocity = Math.Max(0, absoluteVelocity),
+            StopOnTarget = stopOnTarget,
+            ImmediateResponse = immediateResponse,
+        }, cancellationToken);
+
+        return HandleHdspCommand(response);
+    }
+
+    public async Task<string> SendHdspXavpAsync(double absolutePosition, double percentVelocity, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default)
+    {
+        var response = await _client.PutHdspXavpAsync(new HdspXavpRequest
+        {
+            AbsolutePosition = Math.Max(0, absolutePosition),
+            PercentVelocity = Math.Clamp(percentVelocity, 0, 100),
+            StopOnTarget = stopOnTarget,
+            ImmediateResponse = immediateResponse,
+        }, cancellationToken);
+
+        return HandleHdspCommand(response);
+    }
+
+    public async Task<string> SendHdspXpvaAsync(double normalizedPosition, double absoluteVelocity, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default)
+    {
+        var response = await _client.PutHdspXpvaAsync(new HdspXpvaRequest
+        {
+            NormalizedPosition = Math.Clamp(normalizedPosition, 0, 1),
+            AbsoluteVelocity = Math.Max(0, absoluteVelocity),
+            StopOnTarget = stopOnTarget,
+            ImmediateResponse = immediateResponse,
+        }, cancellationToken);
+
+        return HandleHdspCommand(response);
+    }
+
+    public async Task<string> SendHdspXpvpAsync(double normalizedPosition, double percentVelocity, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default)
+    {
+        var response = await _client.PutHdspXpvpAsync(new HdspXpvpRequest
+        {
+            NormalizedPosition = Math.Clamp(normalizedPosition, 0, 1),
+            PercentVelocity = Math.Clamp(percentVelocity, 0, 100),
+            StopOnTarget = stopOnTarget,
+            ImmediateResponse = immediateResponse,
+        }, cancellationToken);
+
+        return HandleHdspCommand(response);
+    }
+
+    public async Task<string> SendHdspXatAsync(double absolutePosition, double duration, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default)
+    {
+        var response = await _client.PutHdspXatAsync(new HdspXatRequest
+        {
+            AbsolutePosition = Math.Max(0, absolutePosition),
+            Duration = Math.Max(0, duration),
+            StopOnTarget = stopOnTarget,
+            ImmediateResponse = immediateResponse,
+        }, cancellationToken);
+
+        return HandleHdspCommand(response);
+    }
+
+    public async Task<string> SendHdspXptAsync(double normalizedPosition, double duration, bool stopOnTarget = false, bool immediateResponse = false, CancellationToken cancellationToken = default)
+    {
+        var response = await _client.PutHdspXptAsync(new HdspXptRequest
+        {
+            NormalizedPosition = Math.Clamp(normalizedPosition, 0, 1),
+            Duration = Math.Max(0, duration),
+            StopOnTarget = stopOnTarget,
+            ImmediateResponse = immediateResponse,
+        }, cancellationToken);
+
+        return HandleHdspCommand(response);
+    }
+
     public async Task<SliderStrokeResponse> GetSliderStrokeAsync(CancellationToken cancellationToken = default)
     {
         var response = await _client.GetSliderStrokeAsync(cancellationToken);
@@ -328,6 +406,13 @@ public sealed class HandyService : IHandyService
 
     private long GetEstimatedServerTime()
         => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + EstimatedServerTimeOffset;
+
+    private string HandleHdspCommand(HandyApiResponse<string> response)
+        => Handle(response, result =>
+        {
+            CurrentMode = HandyMode.Hdsp;
+            return result;
+        });
 
     private TOut Handle<TResult, TOut>(HandyApiResponse<TResult> response, Func<TResult, TOut> onSuccess) where TResult : class
     {
