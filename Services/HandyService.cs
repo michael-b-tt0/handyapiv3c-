@@ -1,5 +1,6 @@
 using handyapiv3.Abstractions;
 using handyapiv3.Models;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace handyapiv3.Services;
@@ -24,6 +25,8 @@ public sealed class HandyService : IHandyService
     public InfoResponse? Info { get; private set; }
 
     public HampStateResponse? HampState { get; private set; }
+
+    public HdspStateResponse? HdspState { get; private set; }
 
     public HsspStateResponse? HsspState { get; private set; }
 
@@ -413,8 +416,80 @@ public sealed class HandyService : IHandyService
         return EstimatedServerTimeOffset;
     }
 
+    public async IAsyncEnumerable<HandySseEvent> SubscribeToDeviceEventsAsync(
+        IEnumerable<string>? eventTypes = null,
+        int? timeout = null,
+        string? deviceReference = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var deviceEvent in _client.SubscribeToEventsAsync(eventTypes, timeout, deviceReference, cancellationToken))
+        {
+            ApplyDeviceEvent(deviceEvent);
+            yield return deviceEvent;
+        }
+    }
+
     private long GetEstimatedServerTime()
         => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + EstimatedServerTimeOffset;
+
+    private void ApplyDeviceEvent(HandySseEvent deviceEvent)
+    {
+        if (string.IsNullOrWhiteSpace(deviceEvent.Type))
+        {
+            return;
+        }
+
+        switch (deviceEvent.Type)
+        {
+            case HandySseEventTypes.DeviceConnected:
+            case HandySseEventTypes.DeviceStatus:
+                var deviceStatus = deviceEvent.DeserializeDeviceData<DeviceStatusEventData>();
+                if (deviceStatus is not null)
+                {
+                    Connected = deviceStatus.Connected;
+                    Info = deviceStatus.Info ?? Info;
+                }
+                break;
+
+            case HandySseEventTypes.DeviceDisconnected:
+                Connected = false;
+                break;
+
+            case HandySseEventTypes.ModeChanged:
+                var mode = deviceEvent.DeserializeDeviceData<GetModeResult>();
+                if (mode is not null)
+                {
+                    CurrentMode = (HandyMode)mode.Mode;
+                }
+                break;
+
+            case HandySseEventTypes.HampStateChanged:
+                HampState = deviceEvent.DeserializeDeviceData<HampStateResponse>() ?? HampState;
+                CurrentMode = HandyMode.Hamp;
+                break;
+
+            case HandySseEventTypes.HdspStateChanged:
+                HdspState = deviceEvent.DeserializeDeviceData<HdspStateResponse>() ?? HdspState;
+                CurrentMode = HandyMode.Hdsp;
+                break;
+
+            case HandySseEventTypes.HspLooping:
+            case HandySseEventTypes.HspStarving:
+            case HandySseEventTypes.HspStateChanged:
+            case HandySseEventTypes.HspThresholdReached:
+            case HandySseEventTypes.HspPausedOnStarving:
+            case HandySseEventTypes.HspResumedOnNotStarving:
+            case HandySseEventTypes.StreamEndReached:
+                HsspState = deviceEvent.DeserializeDeviceData<HsspStateResponse>() ?? HsspState;
+                break;
+
+            case HandySseEventTypes.StrokeChanged:
+                SliderStroke = deviceEvent.DeserializeDeviceData<SliderStrokeResponse>() ?? SliderStroke;
+                break;
+        }
+
+        OnStateChanged();
+    }
 
     private string HandleHdspCommand(HandyApiResponse<string> response)
         => Handle(response, result =>

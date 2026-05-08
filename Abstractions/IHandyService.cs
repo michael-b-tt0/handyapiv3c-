@@ -11,6 +11,7 @@ public interface IHandyService
     HandyMode CurrentMode { get; }
     InfoResponse? Info { get; }
     HampStateResponse? HampState { get; }
+    HdspStateResponse? HdspState { get; }
     HsspStateResponse? HsspState { get; }
     SliderStrokeResponse? SliderStroke { get; }
     long EstimatedServerTimeOffset { get; }
@@ -52,4 +53,5 @@ public interface IHandyService
     Task<int> GetHstpOffsetAsync(CancellationToken cancellationToken = default);
     Task SetHstpOffsetAsync(int offset, CancellationToken cancellationToken = default);
     Task<long> EstimateServerTimeOffsetAsync(int trips = 30, CancellationToken cancellationToken = default);
+    IAsyncEnumerable<HandySseEvent> SubscribeToDeviceEventsAsync(IEnumerable<string>? eventTypes = null, int? timeout = null, string? deviceReference = null, CancellationToken cancellationToken = default);
 }

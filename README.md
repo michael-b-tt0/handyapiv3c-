@@ -23,6 +23,7 @@ Current support includes:
 - HSSP setup, play, pause, resume, stop, state, sync time
 - HSTP offset get/set
 - slider stroke get/set
+- SSE device event subscriptions (`/sse`)
 - server-time offset estimation
 - Hosting API v2 script upload
 
@@ -203,7 +204,33 @@ Notes:
 - HDSP exposes the v3 command endpoints directly through the service and client.
 - `xp*` HDSP position inputs are normalized and clamped to `0..1` by `HandyService`, where `0` is 0% and `1` is 100%.
 - Absolute position, absolute velocity, and duration values are clamped to `>= 0` by `HandyService`.
-- The Handy REST API v3 spec currently exposes HDSP command endpoints, but not a dedicated `GET /hdsp/state` endpoint, so this library does not currently provide HDSP state polling.
+- The Handy REST API v3 spec does not expose a dedicated HDSP state polling endpoint, but HDSP state updates can be received over SSE with `hdsp_state_changed`.
+
+## Example: SSE Device Events
+
+```csharp
+await foreach (var deviceEvent in Handy.SubscribeToDeviceEventsAsync(
+    new[]
+    {
+        HandySseEventTypes.DeviceStatus,
+        HandySseEventTypes.ModeChanged,
+        HandySseEventTypes.HdspStateChanged,
+    }))
+{
+    Console.WriteLine($"{deviceEvent.Type}: {deviceEvent.Id}");
+
+    if (deviceEvent.Type == HandySseEventTypes.HdspStateChanged)
+    {
+        var hdspState = deviceEvent.DeserializeDeviceData<HdspStateResponse>();
+        Console.WriteLine($"HDSP state: {hdspState?.State}");
+    }
+}
+```
+
+Notes:
+
+- SSE authentication follows the Handy API contract and uses query parameters (`ck` and `apikey`) instead of headers.
+- `SubscribeToDeviceEventsAsync` updates the service cache for pushed connection, mode, HAMP, HDSP, HSSP, device info, and stroke changes.
 
 ## Example: Slider Stroke
 
@@ -226,6 +253,7 @@ The service keeps a local cached view of the most useful device/application stat
 - `CurrentMode`
 - `Info`
 - `HampState`
+- `HdspState`
 - `HsspState`
 - `SliderStroke`
 - `EstimatedServerTimeOffset`
@@ -262,6 +290,7 @@ In particular:
 
 - HAMP and HSSP operations call their protocol endpoints directly
 - HDSP operations call the HDSP command endpoints directly
+- SSE subscriptions use the `/sse` endpoint directly and stream typed event envelopes
 - explicit `SetModeAsync(...)` remains available, but is not required for normal HAMP/HSSP/HDSP usage
 - `CurrentMode` is updated from successful operations so the UI can still reflect mode changes
 
@@ -274,7 +303,7 @@ The `implementation material` folder in this project is kept as a local referenc
 
 ## Current Limitations
 
-- HDSP command support is implemented, but HDSP state polling is not because the current v3 REST spec does not expose a dedicated HDSP state endpoint
+- HDSP command support is implemented, and HDSP state updates are available through SSE rather than polling
 - no persistence for `ConnectionKey` is built in
 - no built-in throttling/queueing layer is included
 

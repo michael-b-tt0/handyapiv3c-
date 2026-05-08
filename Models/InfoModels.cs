@@ -21,4 +21,7 @@ public sealed class InfoResponse
 
     [JsonPropertyName("hw_model_variant")]
     public int HardwareModelVariant { get; set; }
+
+    [JsonPropertyName("session_id")]
+    public string? SessionId { get; set; }
 }

@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using handyapiv3.Models;
@@ -130,6 +131,111 @@ public sealed class HandyApiV3Client
     public Task<HandyApiResponse<SliderStrokeResponse>> PutSliderStrokeAsync(SliderSettings request, CancellationToken cancellationToken = default)
         => PutAsync<SliderStrokeResponse>("slider/stroke", request, cancellationToken);
 
+    public async IAsyncEnumerable<HandySseEvent> SubscribeToEventsAsync(
+        IEnumerable<string>? eventTypes = null,
+        int? timeout = null,
+        string? deviceReference = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var request = CreateSseRequest(deviceReference, eventTypes, timeout);
+        using (request)
+        {
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var rawBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                var apiError = TryDeserialize<HandyApiError>(rawBody);
+                throw new InvalidOperationException(apiError?.Message ?? apiError?.Name ?? $"Handy SSE returned {(int)response.StatusCode}.");
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var reader = new StreamReader(stream);
+
+            var dataBuilder = new StringBuilder();
+            string? eventId = null;
+            string? eventName = null;
+
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var line = await reader.ReadLineAsync(cancellationToken);
+                if (line is null)
+                {
+                    break;
+                }
+
+                if (line.Length == 0)
+                {
+                    if (dataBuilder.Length == 0)
+                    {
+                        eventId = null;
+                        eventName = null;
+                        continue;
+                    }
+
+                    var payload = dataBuilder.ToString();
+                    dataBuilder.Clear();
+
+                    var deviceEvent = JsonSerializer.Deserialize<HandySseEvent>(payload, HandySseJson.Options)
+                        ?? throw new InvalidOperationException("Handy SSE returned an empty event payload.");
+
+                    if (string.IsNullOrWhiteSpace(deviceEvent.Id))
+                    {
+                        deviceEvent.Id = eventId;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(deviceEvent.Type))
+                    {
+                        deviceEvent.Type = eventName;
+                    }
+
+                    eventId = null;
+                    eventName = null;
+
+                    yield return deviceEvent;
+                    continue;
+                }
+
+                if (line.StartsWith(':'))
+                {
+                    continue;
+                }
+
+                if (line.StartsWith("data:", StringComparison.Ordinal))
+                {
+                    var value = line.Length > 5 && line[5] == ' '
+                        ? line[6..]
+                        : line[5..];
+
+                    if (dataBuilder.Length > 0)
+                    {
+                        dataBuilder.Append('\n');
+                    }
+
+                    dataBuilder.Append(value);
+                    continue;
+                }
+
+                if (line.StartsWith("id:", StringComparison.Ordinal))
+                {
+                    eventId = line.Length > 3 && line[3] == ' '
+                        ? line[4..]
+                        : line[3..];
+                    continue;
+                }
+
+                if (line.StartsWith("event:", StringComparison.Ordinal))
+                {
+                    eventName = line.Length > 6 && line[6] == ' '
+                        ? line[7..]
+                        : line[6..];
+                }
+            }
+        }
+    }
+
     private Task<HandyApiResponse<T>> GetAsync<T>(string relativeUrl, CancellationToken cancellationToken) where T : class
     {
         var request = CreateRequest(HttpMethod.Get, relativeUrl);
@@ -256,6 +362,27 @@ public sealed class HandyApiV3Client
         return request;
     }
 
+    private HttpRequestMessage CreateSseRequest(string? deviceReference, IEnumerable<string>? eventTypes, int? timeout)
+    {
+        var resolvedDeviceReference = string.IsNullOrWhiteSpace(deviceReference)
+            ? ConnectionKey
+            : deviceReference;
+
+        if (string.IsNullOrWhiteSpace(resolvedDeviceReference))
+        {
+            throw new InvalidOperationException("A Handy connection key or channel reference must be set before subscribing to SSE events.");
+        }
+
+        if (string.IsNullOrWhiteSpace(_options.ApplicationApiKey))
+        {
+            throw new InvalidOperationException("A Handy application API key must be set before subscribing to SSE events.");
+        }
+
+        var request = new HttpRequestMessage(HttpMethod.Get, BuildSseUri(resolvedDeviceReference, eventTypes, timeout));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+        return request;
+    }
+
     private Uri BuildUri(string baseUri, string relativeUrl)
     {
         var normalizedBaseUri = baseUri.EndsWith("/", StringComparison.Ordinal)
@@ -271,6 +398,36 @@ public sealed class HandyApiV3Client
 
     private Uri BuildUri(string relativeUrl)
         => BuildUri(_options.ApiBaseUrl, relativeUrl);
+
+    private Uri BuildSseUri(string deviceReference, IEnumerable<string>? eventTypes, int? timeout)
+    {
+        var query = new List<string>
+        {
+            $"ck={Uri.EscapeDataString(deviceReference)}",
+            $"apikey={Uri.EscapeDataString(_options.ApplicationApiKey)}",
+        };
+
+        if (timeout.HasValue)
+        {
+            query.Add($"timeout={timeout.Value}");
+        }
+
+        if (eventTypes is not null)
+        {
+            var filteredTypes = eventTypes
+                .Where(static value => !string.IsNullOrWhiteSpace(value))
+                .Select(static value => value.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+
+            if (filteredTypes.Length > 0)
+            {
+                query.Add($"events={Uri.EscapeDataString(string.Join(",", filteredTypes))}");
+            }
+        }
+
+        return new Uri($"{BuildUri("sse")}?{string.Join("&", query)}", UriKind.Absolute);
+    }
 
     private static T? TryDeserialize<T>(string json) where T : class
     {
